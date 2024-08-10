@@ -100,12 +100,12 @@ void serialControl(void* parameter) {
                             }
                         }
 
-                        // Limit x and y to the range [-128, 127]
-                        x = min(max(x, -128), 127);
-                        y = min(max(y, -128), 127);
-
-                        ESP_LOGI(LOG_TAG_SC, "Moving mouse to (%d, %d)", x, y);
-                        Mouse.move(x, y);
+                        if (x >= -128 && x <= 127 && y >= -128 && y <= 127) {
+                            ESP_LOGI(LOG_TAG_SC, "Moving mouse to (%d, %d)", x, y);
+                            Mouse.move(x, y);
+                        } else {
+                            Serial.println("One of the mouse values is out of range. Received command: " + command);
+                        }
                     } else if (commaCount == 2) {
                         const int comma2Index = command.indexOf(',', commaIndex + 1);
                         String xStr = command.substring(0, commaIndex);
@@ -134,13 +134,12 @@ void serialControl(void* parameter) {
                             }
                         }
 
-                        // Limit x, y and wheel to the range [-128, 127]
-                        x = min(max(x, -128), 127);
-                        y = min(max(y, -128), 127);
-                        wheel = min(max(wheel, -127), 127);
-
-                        ESP_LOGI(LOG_TAG_SC, "Moving mouse to (%d, %d, %d)", x, y, wheel);
-                        Mouse.move(x, y, wheel);
+                        if (x >= -128 && x <= 127 && y >= -128 && y <= 127 && wheel >= -128 && wheel <= 127) {
+                            ESP_LOGI(LOG_TAG_SC, "Moving mouse to (%d, %d, %d)", x, y, wheel);
+                            Mouse.move(x, y, wheel);
+                        } else {
+                            Serial.println("One of the mouse values is out of range. Received command: " + command);
+                        }
                     } else {
                         ESP_LOGE(LOG_TAG_SC, "Invalid Mouse Command");
                     }
@@ -161,14 +160,6 @@ void initializeBluetoothPairing() {
     Mouse.begin();
 
     Serial.println("The Bluetooth Device Is Ready To Pair");
-
-    // wait until client is authenticated and connected
-    while (!Keyboard.isAuthenticated() || !Keyboard.isConnected()) {
-        // TODO: case if authenticated but not connected
-        delay(1);
-    }
-
-    Serial.println("The Bluetooth Device Is Connected Successfully");
 }
 
 void setup() {
@@ -185,14 +176,12 @@ void loop() {
     if (Keyboard.isConnected() && !connected) {
         connected = true;
         Serial.println("Connected");
-    } else if (!Keyboard.isConnected()) {
-        if (connected) {
-            connected = false;
-            Serial.println("Disconnected");
-            Keyboard.end();
-            Mouse.end();
-            initializeBluetoothPairing();
-        }
+    } else if (!Keyboard.isConnected() && connected) {
+        connected = false;
+        Serial.println("Disconnected");
+        Keyboard.end();
+        Mouse.end();
+        initializeBluetoothPairing();
     }
 
     delay(1);
